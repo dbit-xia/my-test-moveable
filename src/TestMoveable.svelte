@@ -154,15 +154,23 @@
     });
 
     selecto.on("select", e => {
-        // targets=[];
-        e.added.forEach(el => {
-            // targets.push(el);
-            console.log('added1231231');
-            el.classList.add("selected");
+        e.added.forEach(target => {
+            target.classList.add("selected");
+
+            const index = targets.indexOf(target);
+            if (index === -1) {
+                targets = [...targets, target];
+            }
+
         });
-        e.removed.forEach(el => {
-            console.log('removed');
-            el.classList.remove("selected");
+        e.removed.forEach(target => {
+            target.classList.remove("selected");
+
+            const index = targets.indexOf(target);
+            if (index > -1) {
+                targets.splice(index, 1);
+                targets = [...targets];
+            }
         });
     });
 </script>
