@@ -207,10 +207,6 @@
         background: ButtonFace;
     }
 
-    div.target {
-        position: absolute;
-    }
-
     .target {
         position: absolute;
         width: 50px;
@@ -219,6 +215,8 @@
         text-align: center;
         box-sizing: border-box;
         background: white;
+        min-width: 2px;
+        min-height: 2px;
     }
 
     .target.current {
@@ -307,10 +305,11 @@
             }}
             on:resize={({ detail: { target, width, height, drag }}) => {
                 const frame = getFrame(target);
-                target.style.width = `${width}px`;
-                target.style.height = `${height}px`;
                 target.style.left =`${drag.left}px`;
                 target.style.top = `${drag.top}px`;
+                target.style.width = `${width}px`;
+                target.style.height = `${height}px`;
+
                 // get drag event
                 frame.set('translate',drag.beforeTranslate);
                 target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
