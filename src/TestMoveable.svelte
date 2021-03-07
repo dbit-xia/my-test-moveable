@@ -4,24 +4,6 @@
     import { Frame } from "scenejs";
     import keycon from "keycon";
     import Selecto from "selecto";
-    import Guides from "svelte-guides";
-
-    let guides1;
-    let guides2;
-    let horizontalGuidelines;
-    let verticalGuidelines;
-
-    function onWindowResize() {
-        guides1.resize();
-        guides2.resize();
-    }
-    function setGuides() {
-        horizontalGuidelines = [
-            ...guides1.getGuides(),
-            (container.innerHeight - 30) / 2
-        ];
-        verticalGuidelines = [...guides2.getGuides(), (container.innerWidth - 30) / 2];
-    }
 
     const KeyController = keycon.setGlobal();
     const frameMap = new Map();
@@ -129,7 +111,7 @@
     let resizing=false;
     onMount(() => {
 
-        setGuides();
+        // setGuides();
 
         //全选中
         elementGuidelines = [...document.querySelectorAll(".container .target")];
@@ -248,24 +230,7 @@
 
 <div class="target current" style="display: none"></div>
 
-<div class="page">
-    <div class="box" />
-    <div class="ruler horizontal">
-        <Guides
-                bind:this={guides1}
-                type="horizontal"
-                backgroundColor="#444"
-                rulerStyle={{ left: '30px', width: 'calc(100% - 30px)', height: '30px' }}
-                {setGuides} />
-    </div>
-    <div class="ruler vertical">
-        <Guides
-                bind:this={guides2}
-                type="vertical"
-                backgroundColor="#444"
-                rulerStyle={{ top: '30px', height: 'calc(100% - 30px)', width: '30px' }}
-                {setGuides} />
-    </div>
+
     <div class="container" bind:this={container} on:mousedown={onMouseDown}>
         <div class="target" >Target</div>
         <div class="target" style="left: 100px" >Target</div>
@@ -283,8 +248,7 @@
             snappable={true}
             snapThreshold={2}
             snapCenter={false}
-            verticalGuidelines={verticalGuidelines}
-            horizontalGuidelines={horizontalGuidelines}
+
             elementGuidelines={elementGuidelines}
 
             on:render={({ detail }) => {
@@ -339,13 +303,14 @@
                 set([cssWidth, cssHeight]);
 
                 // If a drag event has already occurred, there is no dragStart.
-                //dragStart && dragStart.set(frame.get('translate'));
+                dragStart && dragStart.set(frame.get('translate'));
             }}
             on:resize={({ detail: { target, width, height, drag }}) => {
                 const frame = getFrame(target);
                 target.style.width = `${width}px`;
                 target.style.height = `${height}px`;
-
+                target.style.left =`${drag.left}px`;
+                target.style.top = `${drag.top}px`;
                 // get drag event
                 frame.set('translate',drag.beforeTranslate);
                 target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
@@ -359,4 +324,3 @@
 
 
     />
-</div>
