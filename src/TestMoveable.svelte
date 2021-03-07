@@ -166,11 +166,12 @@
         e.removed.forEach(target => {
             target.classList.remove("selected");
 
-            const index = targets.indexOf(target);
-            if (index > -1) {
-                targets.splice(index, 1);
-                targets = [...targets];
-            }
+            //选中多个后,单击有问题,所以注释掉
+            // const index = targets.indexOf(target);
+            // if (index > -1) {
+            //     targets.splice(index, 1);
+            //     targets = [...targets];
+            // }
         });
     });
 </script>
