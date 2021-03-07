@@ -3,6 +3,8 @@
     import { onMount, tick } from "svelte";
     import { Frame } from "scenejs";
     import keycon from "keycon";
+    import Selecto from "selecto";
+
 
     const KeyController = keycon.setGlobal();
     const frameMap = new Map();
@@ -26,7 +28,7 @@
     function newFrame(el) {
         console.log('newFrame')
         const frame = new Frame({
-            // translate: [0, 0],
+            translate: [0, 0],
             transform: {
                 translateX: "0px",
                 translateY: "0px",
@@ -100,11 +102,67 @@
         }
     }
 
-    onMount(() => {
-        requestAnimationFrame(() => {
-            targets = [document.querySelector(".target")];
+    let throttleRotate = 0;
+    function onShift() {
+        throttleRotate = KeyController.shiftKey ? 30 : 0;
+    }
 
-            // onWindowResize();
+    onMount(() => {
+        //全选中
+        // targets = [].slice.call(document.querySelectorAll(".target"));
+        KeyController.keydown("shift", onShift);
+        KeyController.keyup("shift", onShift);
+
+        // targets.forEach((target) => {
+        //     const frame = new Frame({
+        //         translate: [0, 0],
+        //         transform: {
+        //             translateX: "0px",
+        //             translateY: "0px",
+        //             rotate: "0deg",
+        //             scaleX: 1,
+        //             scaleY: 1
+        //         }
+        //     });
+        //     frameMap.set(target, frame);
+        // });
+
+        // import { getElementInfo } from "moveable";
+
+    });
+
+    const selecto = new Selecto({
+        // The container to add a selection element
+        container: container,
+        // The area to drag selection element (default: container)
+        // dragContainer: window,
+        // Targets to select. You can register a queryselector or an Element.
+        selectableTargets: [".target"],
+        // Whether to select by click (default: true)
+        selectByClick: true,
+        // Whether to select from the target inside (default: true)
+        selectFromInside: false,
+        // After the select, whether to select the next target with the selected target (deselected if the target is selected again).
+        continueSelect: false,
+        // Determines which key to continue selecting the next target via keydown and keyup.
+        toggleContinueSelect: "shift",
+        // The container for keydown and keyup events
+        keyContainer: window,
+        // The rate at which the target overlaps the drag area to be selected. (default: 100)
+        hitRate: 50,
+        // getElementRect: getElementInfo,
+    });
+
+    selecto.on("select", e => {
+        // targets=[];
+        e.added.forEach(el => {
+            // targets.push(el);
+            console.log('added1231231');
+            el.classList.add("selected");
+        });
+        e.removed.forEach(el => {
+            console.log('removed');
+            el.classList.remove("selected");
         });
     });
 </script>
@@ -128,13 +186,19 @@
         border: 1px solid #333;
         text-align: center;
         box-sizing: border-box;
-        z-index: 20;
     }
+
+    .target.selected {
+        position: absolute;
+        border: 2px solid #f55;
+    }
+
 </style>
 
 <div class="container" bind:this={container} on:mousedown={onMouseDown}>
-    <div class="target" aria-disabled="true" >Target</div>
-    <div class="target" aria-disabled="true" style="left: 100px" >Target</div>
+    <div class="target selected" >Target</div>
+    <div class="target" style="left: 100px" >Target</div>
+    <div class="target" style="left: 200px" >Target</div>
 </div>
 <Moveable
         className="moveable"
@@ -143,32 +207,40 @@
         target={targets}
         draggable={true}
         throttleDrag={0}
+
         on:render={({ detail }) => {
             onRender(detail);
-          }}
+        }}
         on:renderGroup={({ detail }) => {
-        detail.targets.forEach(target => onRender({ target }));
-      }}
+            detail.targets.forEach(target => onRender({ target }));
+        }}
         on:clickGroup={({ detail }) => {
-        onClickGroup(detail);
-      }}
+            onClickGroup(detail);
+        }}
         on:dragStart={({ detail }) => {
             onDragStart(detail);
-          }}
+        }}
         on:drag={({ detail }) => {
             onDrag(detail);
-          }}
-        on:dragGroupStart={({ detail }) => {
-            detail.events.forEach(onDragStart);
-          }}
-        on:dragGroup={({ detail }) => {
-            detail.events.forEach(onDrag);
-          }}
+        }}
+        on:dragGroupStart={({ detail: { targets,events }}) => {
+            events.forEach(({target,set}, i) => {
+                onDragStart({target,set})
+            });
+        }}
+        on:dragGroup={({ detail: { targets, events }}) => {
+            events.forEach(({ target, beforeTranslate }, i) => {
+                onDrag({target,beforeTranslate});
+            });
+        }}
+        on:dragGroupEnd={({ detail: { targets, isDrag, clientX, clientY }}) => {
+            console.log("onDragGroupEnd", targets, isDrag);
+        }}
 
         resizable={true}
         throttleResize={0}
         on:resizeStart={({ detail: {target, set, setOrigin, dragStart }}) => {
-                const frame = getFrame(target);
+            const frame = getFrame(target);
             // Set origin if transform-orgin use %.
             setOrigin(["%", "%"]);
 
@@ -182,7 +254,7 @@
             //dragStart && dragStart.set(frame.get('translate'));
         }}
         on:resize={({ detail: { target, width, height, drag }}) => {
-                const frame = getFrame(target);
+            const frame = getFrame(target);
             target.style.width = `${width}px`;
             target.style.height = `${height}px`;
 
@@ -194,4 +266,6 @@
         on:resizeEnd={({ detail: { target, isDrag, clientX, clientY }}) => {
             console.log("onResizeEnd", target, isDrag);
         }}
+
+
 />
