@@ -32,6 +32,7 @@
 
     function log(...args){
         args.unshift(parseInt(Date.now() / 1000));
+        args.unshift(state);
         console.log.apply(console,args);
     }
     
@@ -75,8 +76,9 @@
 
     async function onMouseDown(e) {
         log('onMouseDown');
-        if (selecto.continueSelect) return;
-        if (selectoDraging) return;
+        // if (selecto.continueSelect) return;
+        // if (state.selectoDraging) return;
+        // if (KeyController.shiftKey) return;
         // const target = e.target;
         // if (container === target) {
         //     targets = [];
@@ -91,19 +93,23 @@
         // } else {
         //     targets = [target];
         // }
-        //
-        await nextTick();
-        moveable.dragStart(e);
+
+        
+        if (KeyController.ctrlKey){
+            await nextTick();
+            moveable.dragStart(e);    
+        }
+        
     }
     async function onMouseUp(e) {
         log('onMouseUp');
         // moveable.dragEnd(e);
         await nextTick();
-        selectoDraging = false;
+        state.selectoDraging = false;
         selecto.continueSelect = false;
-        groupDraging = false;
-        resizing = false;
-        groupResizing = false;
+        state.groupDraging = false;
+        state.resizing = false;
+        state.groupResizing = false;
     }
     
     function onClickGroup(e) {
@@ -159,11 +165,14 @@
     //     throttleRotate = KeyController.shiftKey ? 30 : 0;
     // }
 
-    let groupDraging=false;
-    let resizing=false;
-    let groupResizing=false;
+    let state={
+        groupDraging:false,
+        resizing:false,
+        groupResizing:false,
+        selectoDraging:false
+    };
+
     let selecto;
-    let selectoDraging=false;
     onMount(() => {
 
         // setGuides();
@@ -228,22 +237,26 @@
     });
 
     function selectoSelect(e){
-        log('selecto select', 'groupDraging=' + groupDraging, 'targets.length=' + e.removed.length)
-        if (groupDraging) return;
+        //if (state.groupDraging) return;
 
-        e.removed.forEach(target => {
-            // target.classList.remove("current");
-            log('select removed',target === targets[0]);
-
-            target.classList.remove("current");
-
-            //选中多个后,单击有问题,所以注释掉
-            const index = targets.indexOf(target);
-            if (index > -1) {
-                targets.splice(index, 1);
-                targets = [...targets];
-            }
-        });
+        // if (KeyController.shiftKey){
+        //    
+        // }else{
+            e.removed.forEach(target => {
+                // target.classList.remove("current");
+                log('select removed',target === targets[0]);
+        
+                target.classList.remove("current");
+        
+                //选中多个后,单击有问题,所以注释掉
+                const index = targets.indexOf(target);
+                if (index > -1) {
+                    targets.splice(index, 1);
+                    targets = [...targets];
+                }
+            });
+        // }
+        
 
         e.added.forEach(target => {
             // target.classList.add("current");
@@ -304,7 +317,7 @@
             target={targets}
             draggable={true}
             throttleDrag={1}
-            snappable={true}
+            snappable={false}
             snapThreshold={1}
             snapCenter={false}
 
@@ -317,8 +330,8 @@
                 detail.targets.forEach(target => onRender({ target }));
             }}
             on:clickGroup={({ detail }) => {
-                log('clickGroup',"groupDraging="+groupDraging);
-                if (groupDraging) return;
+                log('clickGroup',"groupDraging="+state.groupDraging);
+                //if (state.groupDraging) return;
                 onClickGroup(detail);
             }}
             on:dragStart={({ detail }) => {
@@ -330,7 +343,7 @@
             }}
             on:dragGroupStart={({ detail: { targets,events }}) => {
                 log('dragGroupStart');
-                groupDraging=true;
+                state.groupDraging=true;
                 events.forEach(({target,set}, i) => {
                     onDragStart({target,set})
                 });
@@ -342,7 +355,7 @@
             }}
             on:dragGroupEnd={async ({ detail: { targets, isDrag, clientX, clientY }}) => {
                 await nextTick();
-                groupDraging=false;
+                state.groupDraging=false;
                 log("onDragGroupEnd", targets, isDrag);
             }}
 
@@ -352,7 +365,7 @@
             on:resizeStart={({detail})=>{
                 log('resizeStart')
                 //if (groupResizing) return;
-                resizing=true;
+                state.resizing=true;
                 onResizeStart(detail);
             }}
             on:resize={({detail})=>{
@@ -360,13 +373,13 @@
             }}
             on:resizeEnd={async ({ detail: { target, isDrag, clientX, clientY }}) => {
                 await nextTick();
-                resizing=false;
+                state.resizing=false;
                 log("onResizeEnd", target, isDrag);
             }}
 
             on:resizeGroupStart={({detail:{events}}) => {
                 log('resizeGroupStart')
-                groupResizing=true;
+                state.groupResizing=true;
                 //events.forEach((event)=>{
                 //    onResizeStart(event);
                 //});
@@ -408,14 +421,12 @@
             }}
             on:resizeGroupEnd={async (eventInfo) => {
                 await nextTick();
-                groupResizing=false;
+                state.groupResizing=false;
             }}
 
 
         />
         <Selecto bind:this={selecto}
-                 container={container}
-                 keyContainer={container}
                  selectableTargets={[".target"]}
                  selectByClick={true}
                  selectFromInside={false}
@@ -423,12 +434,13 @@
                  toggleContinueSelect={"shift"}
                  hitRate={50}
                  on:dragStart={({ detail: e }) => {
-                    log('selecto dragStart', 'groupDraging=' + groupDraging)
-                    if (groupDraging || resizing) return e.stop();
-                    selectoDraging = true;
+                    log('selecto dragStart', 'groupDraging=' + state.groupDraging)
+                    if (state.groupDraging || state.resizing) return e.stop();
+                    state.selectoDraging = true;
                   }} 
                  on:select={({ detail: e }) => {
-                  selectoSelect(e);
+                     log('selecto select',  'targets.length=' + e.removed.length)
+                    selectoSelect(e);
                  }}
         />
     </div>
