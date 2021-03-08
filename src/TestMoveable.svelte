@@ -5,11 +5,11 @@
     import keycon from "keycon";
     import Selecto from "svelte-selecto";
 
-    
+
     let nextTick=(ms)=> {
         return new Promise(res => setTimeout(res, ms || 0));
     };
-    
+
     const KeyController = keycon.setGlobal();
     const frameMap = new Map();
     let targets = [];
@@ -41,7 +41,7 @@
         args.unshift(state);
         console.log.apply(console,args);
     }
-    
+
     function newFrame(el) {
         log('newFrame')
         const frame = new Frame({
@@ -73,15 +73,24 @@
             parseFloat(frame.get("transform", "translateY"))
         ]);
     }
-    function onDrag({ target, beforeTranslate }) {
+    function onDrag({ target, beforeTranslate,left,top,clientX,clientY ,delta}) {
+
         const frame = getFrame(target);
 
         frame.set("transform", "translateX", `${beforeTranslate[0]}px`);
         frame.set("transform", "translateY", `${beforeTranslate[1]}px`);
+        // const style = window.getComputedStyle(target);
+        // target.style.left =`${parseInt(style.left)}px`;
+        // target.style.top = `${parseInt(style.top)}px`;
+        //此处不生效,left和top不会变
+        if (targets.includes(target)){
+            getSelectAttribs(target);
+        }
+
     }
 
     async function onMouseDown(e) {
-        
+
         // if (selecto.continueSelect) return;
         // if (state.selectoDraging) return;
         // if (KeyController.shiftKey) return;
@@ -99,7 +108,7 @@
             log('onMouseDown','点击了已选中的对象');
             return;
         }
-    
+
         log('onMouseDown',target);
         // if (KeyController.shiftKey) {
         //     targets = [...targets, target];
@@ -107,12 +116,12 @@
         //     targets = [target];
         // }
 
-        
+
         if (!KeyController.shiftKey){
             await nextTick(2);
-            moveable.dragStart(e);    
+            moveable.dragStart(e);
         }
-        
+
     }
     async function onMouseUp(e) {
         log('onMouseUp');
@@ -124,7 +133,7 @@
         state.resizing = false;
         state.groupResizing = false;
     }
-    
+
     function onClickGroup(e) {
         // const target = e.inputTarget;
         //
@@ -148,26 +157,29 @@
         const frame = getFrame(target);
         // Set origin if transform-orgin use %.
         setOrigin(["%", "%"]);
-    
+
         // If cssSize and offsetSize are different, set cssSize. (no box-sizing)
         const style = window.getComputedStyle(target);
         const cssWidth = parseFloat(style.width);
         const cssHeight = parseFloat(style.height);
         set([cssWidth, cssHeight]);
-    
+
         // If a drag event has already occurred, there is no dragStart.
         dragStart && dragStart.set(frame.get('translate'));
     }
 
     function onResize ({ target, width, height, drag })  {
         //if (groupResizing) return;
-    
+
         const frame = getFrame(target);
         target.style.left =`${drag.left}px`;
         target.style.top = `${drag.top}px`;
         target.style.width = `${width}px`;
         target.style.height = `${height}px`;
-    
+
+        if (targets.includes(target)){
+            getSelectAttribs(target);
+        }
         // get drag event
         frame.set('translate',drag.beforeTranslate);
         target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
@@ -209,67 +221,26 @@
 
 
         // import { getElementInfo } from "moveable";
-        // selecto = new Selecto({
-        //     // The container to add a selection element
-        //     container: container,
-        //     // The area to drag selection element (default: container)
-        //     // dragContainer: window,
-        //     // Targets to select. You can register a queryselector or an Element.
-        //     selectableTargets: [".target"],
-        //     // Whether to select by click (default: true)
-        //     selectByClick: true,
-        //     // Whether to select from the target inside (default: true)
-        //     selectFromInside: false,
-        //     // After the select, whether to select the next target with the selected target (deselected if the target is selected again).
-        //     continueSelect: false,
-        //     // Determines which key to continue selecting the next target via keydown and keyup.
-        //     // toggleContinueSelect: "shift",
-        //     // The container for keydown and keyup events
-        //     keyContainer: container,
-        //     // The rate at which the target overlaps the drag area to be selected. (default: 100)
-        //     hitRate: 50,
-        //     // getElementRect: getElementInfo,
-        // });
-        // KeyController.keydown("shift", ()=>{
-        //     selecto.continueSelect = true;
-        // });
-        // KeyController.keyup("shift", ()=>{
-        //     selecto.continueSelect = false;
-        // });
-        //
-        // selecto.on("dragStart", e => {
-        //     log('selecto dragStart','groupDraging='+groupDraging)
-        //     if (groupDraging || resizing) e.stop();
-        //     selectoDraging = true;
-        //    
-        // }).on("select", e => {
-        //     
-        //
-        // });
 
     });
 
     function selectoSelect(e){
         //if (state.groupDraging) return;
 
-        // if (KeyController.shiftKey){
-        //    
-        // }else{
-            e.removed.forEach(target => {
-                // target.classList.remove("current");
-                log('select removed',target === targets[0]);
-        
-                target.classList.remove("current");
-        
-                //选中多个后,单击有问题,所以注释掉
-                const index = targets.indexOf(target);
-                if (index > -1) {
-                    targets.splice(index, 1);
-                    targets = [...targets];
-                }
-            });
-        // }
-        
+        e.removed.forEach(target => {
+            // target.classList.remove("current");
+            log('select removed',target === targets[0]);
+
+            target.classList.remove("current");
+            getSelectAttribs(null);
+            //选中多个后,单击有问题,所以注释掉
+            const index = targets.indexOf(target);
+            if (index > -1) {
+                targets.splice(index, 1);
+                targets = [...targets];
+            }
+        });
+
 
         e.added.forEach(target => {
             // target.classList.add("current");
@@ -279,9 +250,46 @@
                 targets = [...targets, target];
             }
             let firstTarget = targets[0];
-            (firstTarget === target) && firstTarget.classList.add("current");
+            if (firstTarget === target) {
+                getSelectAttribs(firstTarget);
+            }
 
         });
+    }
+
+
+    function createElement(){
+        var btn=document.createElement("BUTTON");
+        var t=document.createTextNode("CLICK ME");
+        btn.className=target1.className;
+        btn.appendChild(t);
+        container.appendChild(btn)
+        elementGuidelines.push(btn)
+    }
+
+    const FIX_ATTRIB_ARRAY=['left','top','width','height'];
+    const attribMap= {
+        "A": ['font-size'],
+        "SPAN": ['font-size'],
+        "DIV": ['font-size'],
+        "BUTTON": ['font-size'],
+    };
+    for (let key in attribMap){
+        attribMap[key].unshift.apply(attribMap[key],FIX_ATTRIB_ARRAY);
+    }
+
+    let currentSelect;
+    let attribList=[];
+    function getSelectAttribs(currentSelect) {
+        attribList=[];
+        if (currentSelect){
+            let attribs = attribMap[currentSelect.tagName] || [];
+            const style = window.getComputedStyle(currentSelect);
+            attribs.forEach((key)=>{
+                attribList.push([key,style[key]]);
+            })
+        }
+
     }
 
 </script>
@@ -291,7 +299,7 @@
     .container {
         border: 1px solid #333;
         width: 800px;
-        height: 300px;
+        height: 500px;
         background: ButtonFace;
     }
 
@@ -307,22 +315,29 @@
         min-height: 2px;
     }
 
-    .target.current {
+    .current {
         position: absolute;
         border: 2px solid #f55;
     }
 
 </style>
 
-<div class="target current" style="display: none"></div>
 
-<button>容器外按钮</button>
-<div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
+<div style="display: none">
+    <div class="current" >保住class</div>
+    <div class="target" bind:this={target1}>获取类名</div>
+</div>
+
+
+<button on:click={createElement}>创建对象</button>
+<button class="target" on:click={getSelectAttribs}>获取选中结果</button>
+<div style="display: flex;flex-direction: row">
+    <div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
     <div class="target" >Target</div>
     <div class="target" style="left: 100px" >Target</div>
     <div class="target" style="left: 200px" >Target</div>
-    <a type="text" class="target" style="position: absolute" >456</a>
-    
+    <a type="text" class="target" style="left: 500px" >456</a>
+
     <Moveable
             className="moveable"
             container={container}
@@ -330,7 +345,7 @@
             target={targets}
             draggable={true}
             throttleDrag={1}
-            snappable={false}
+            snappable={true}
             snapThreshold={1}
             snapCenter={false}
 
@@ -352,6 +367,7 @@
                 onDragStart(detail);
             }}
             on:drag={({ detail }) => {
+                log('drag');
                 onDrag(detail);
             }}
             on:dragGroupStart={({ detail: { targets,events }}) => {
@@ -399,16 +415,16 @@
                 events.forEach((ev, i) => {
                     let {target}=ev;
                     const frame = getFrame(target);
-        
+
                     // Set origin if transform-orgin use %.
                     ev.setOrigin(["%", "%"]);
-        
+
                     // If cssSize and offsetSize are different, set cssSize.
                     const style = window.getComputedStyle(ev.target);
                     const cssWidth = parseFloat(style.width);
                     const cssHeight = parseFloat(style.height);
                     ev.set([cssWidth, cssHeight]);
-        
+
                     // If a drag event has already occurred, there is no dragStart.
                     ev.dragStart && ev.dragStart.set(frame.get('translate'));
                 });
@@ -436,11 +452,10 @@
                 await nextTick();
                 state.groupResizing=false;
             }}
-
-
         />
+
         <Selecto bind:this={selecto}
-                 selectableTargets={[".target"]}
+                 selectableTargets={[".container .target"]}
                  selectByClick={true}
                  selectFromInside={false}
                  continueSelect={false}
@@ -450,10 +465,16 @@
                     log('selecto dragStart', 'groupDraging=' + state.groupDraging)
                     if (state.groupDraging || state.resizing) return e.stop();
                     state.selectoDraging = true;
-                  }} 
+                  }}
                  on:select={({ detail: e }) => {
                      log('selecto select',  'targets.length=' + e.removed.length)
                     selectoSelect(e);
                  }}
         />
     </div>
+    <div style="display: flex;flex-direction: column">
+        {#each attribList as row}
+            <div>{row[0]}: <input type="text" bind:value={row[1]}/></div>
+        {/each}
+    </div>
+</div>
