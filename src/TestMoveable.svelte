@@ -3,7 +3,7 @@
     import { onMount } from "svelte";
     import { Frame } from "scenejs";
     import keycon from "keycon";
-    import Selecto from "selecto";
+    import Selecto from "svelte-selecto";
 
     
     let nextTick=()=> {
@@ -187,73 +187,76 @@
 
 
         // import { getElementInfo } from "moveable";
-        selecto = new Selecto({
-            // The container to add a selection element
-            container: container,
-            // The area to drag selection element (default: container)
-            // dragContainer: window,
-            // Targets to select. You can register a queryselector or an Element.
-            selectableTargets: [".target"],
-            // Whether to select by click (default: true)
-            selectByClick: true,
-            // Whether to select from the target inside (default: true)
-            selectFromInside: false,
-            // After the select, whether to select the next target with the selected target (deselected if the target is selected again).
-            continueSelect: false,
-            // Determines which key to continue selecting the next target via keydown and keyup.
-            // toggleContinueSelect: "shift",
-            // The container for keydown and keyup events
-            keyContainer: container,
-            // The rate at which the target overlaps the drag area to be selected. (default: 100)
-            hitRate: 50,
-            // getElementRect: getElementInfo,
-        });
-        KeyController.keydown("shift", ()=>{
-            selecto.continueSelect = true;
-        });
-        KeyController.keyup("shift", ()=>{
-            selecto.continueSelect = false;
-        });
-
-        selecto.on("dragStart", e => {
-            log('selecto dragStart','groupDraging='+groupDraging)
-            if (groupDraging || resizing) e.stop();
-            selectoDraging = true;
-            
-        }).on("select", e => {
-            log('selecto select', 'groupDraging=' + groupDraging, 'targets.length=' + e.removed.length)
-            if (groupDraging) return;
-
-            e.removed.forEach(target => {
-                // target.classList.remove("current");
-                log('select removed',target === targets[0]);
-
-                target.classList.remove("current");
-
-                //选中多个后,单击有问题,所以注释掉
-                const index = targets.indexOf(target);
-                if (index > -1) {
-                    targets.splice(index, 1);
-                    targets = [...targets];
-                }
-            });
-
-            e.added.forEach(target => {
-                // target.classList.add("current");
-
-                const index = targets.indexOf(target);
-                if (index === -1) {
-                    targets = [...targets, target];
-                }
-                let firstTarget = targets[0];
-                (firstTarget === target) && firstTarget.classList.add("current");
-
-            });
-
-        });
+        // selecto = new Selecto({
+        //     // The container to add a selection element
+        //     container: container,
+        //     // The area to drag selection element (default: container)
+        //     // dragContainer: window,
+        //     // Targets to select. You can register a queryselector or an Element.
+        //     selectableTargets: [".target"],
+        //     // Whether to select by click (default: true)
+        //     selectByClick: true,
+        //     // Whether to select from the target inside (default: true)
+        //     selectFromInside: false,
+        //     // After the select, whether to select the next target with the selected target (deselected if the target is selected again).
+        //     continueSelect: false,
+        //     // Determines which key to continue selecting the next target via keydown and keyup.
+        //     // toggleContinueSelect: "shift",
+        //     // The container for keydown and keyup events
+        //     keyContainer: container,
+        //     // The rate at which the target overlaps the drag area to be selected. (default: 100)
+        //     hitRate: 50,
+        //     // getElementRect: getElementInfo,
+        // });
+        // KeyController.keydown("shift", ()=>{
+        //     selecto.continueSelect = true;
+        // });
+        // KeyController.keyup("shift", ()=>{
+        //     selecto.continueSelect = false;
+        // });
+        //
+        // selecto.on("dragStart", e => {
+        //     log('selecto dragStart','groupDraging='+groupDraging)
+        //     if (groupDraging || resizing) e.stop();
+        //     selectoDraging = true;
+        //    
+        // }).on("select", e => {
+        //     
+        //
+        // });
 
     });
 
+    function selectoSelect(e){
+        log('selecto select', 'groupDraging=' + groupDraging, 'targets.length=' + e.removed.length)
+        if (groupDraging) return;
+
+        e.removed.forEach(target => {
+            // target.classList.remove("current");
+            log('select removed',target === targets[0]);
+
+            target.classList.remove("current");
+
+            //选中多个后,单击有问题,所以注释掉
+            const index = targets.indexOf(target);
+            if (index > -1) {
+                targets.splice(index, 1);
+                targets = [...targets];
+            }
+        });
+
+        e.added.forEach(target => {
+            // target.classList.add("current");
+
+            const index = targets.indexOf(target);
+            if (index === -1) {
+                targets = [...targets, target];
+            }
+            let firstTarget = targets[0];
+            (firstTarget === target) && firstTarget.classList.add("current");
+
+        });
+    }
 
 </script>
 
@@ -287,14 +290,13 @@
 
 <div class="target current" style="display: none"></div>
 
-
-    <div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
-        <div class="target" >Target</div>
-        <div class="target" style="left: 100px" >Target</div>
-        <div class="target" style="left: 200px" >Target</div>
-        <a type="text" class="target" style="position: absolute" >456</a>
-    </div>
-    <button>容器外按钮</button>
+<button>容器外按钮</button>
+<div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
+    <div class="target" >Target</div>
+    <div class="target" style="left: 100px" >Target</div>
+    <div class="target" style="left: 200px" >Target</div>
+    <a type="text" class="target" style="position: absolute" >456</a>
+    
     <Moveable
             className="moveable"
             container={container}
@@ -410,4 +412,23 @@
             }}
 
 
-    />
+        />
+        <Selecto bind:this={selecto}
+                 container={container}
+                 keyContainer={container}
+                 selectableTargets={[".target"]}
+                 selectByClick={true}
+                 selectFromInside={false}
+                 continueSelect={false}
+                 toggleContinueSelect={"shift"}
+                 hitRate={50}
+                 on:dragStart={({ detail: e }) => {
+                    log('selecto dragStart', 'groupDraging=' + groupDraging)
+                    if (groupDraging || resizing) return e.stop();
+                    selectoDraging = true;
+                  }} 
+                 on:select={({ detail: e }) => {
+                  selectoSelect(e);
+                 }}
+        />
+    </div>
