@@ -1,10 +1,15 @@
 <script>
     import Moveable from "svelte-moveable";
-    import { onMount, tick } from "svelte";
+    import { onMount } from "svelte";
     import { Frame } from "scenejs";
     import keycon from "keycon";
     import Selecto from "selecto";
 
+    
+    let nextTick=()=> {
+        return new Promise(res => setTimeout(res));
+    };
+    
     const KeyController = keycon.setGlobal();
     const frameMap = new Map();
     let targets = [];
@@ -25,8 +30,13 @@
     // };
     let target1;
 
+    function log(...args){
+        args.unshift(parseInt(Date.now() / 1000));
+        console.log.apply(console,args);
+    }
+    
     function newFrame(el) {
-        console.log('newFrame')
+        log('newFrame')
         const frame = new Frame({
             translate: [0, 0],
             transform: {
@@ -63,13 +73,16 @@
         frame.set("transform", "translateY", `${beforeTranslate[1]}px`);
     }
 
-    function onMouseDown(e) {
+    async function onMouseDown(e) {
+        log('onMouseDown');
+        if (selecto.continueSelect) return;
+        if (selectoDraging) return;
         // const target = e.target;
         // if (container === target) {
         //     targets = [];
         //     return;
         // }
-        // console.log(moveable.isMoveableElement(target) );
+        // log(moveable.isMoveableElement(target) );
         // if (moveable.isMoveableElement(target) || targets.indexOf(target) > -1) {
         //     return;
         // }
@@ -78,28 +91,38 @@
         // } else {
         //     targets = [target];
         // }
-
-        setTimeout(() => {
-            moveable.dragStart(e);
-        });
+        //
+        await nextTick();
+        moveable.dragStart(e);
     }
+    async function onMouseUp(e) {
+        log('onMouseUp');
+        // moveable.dragEnd(e);
+        await nextTick();
+        selectoDraging = false;
+        selecto.continueSelect = false;
+        groupDraging = false;
+        resizing = false;
+        groupResizing = false;
+    }
+    
     function onClickGroup(e) {
-        const target = e.inputTarget;
-
-        if (!target.classList.contains("target")) {
-            return;
-        }
-        const index = targets.indexOf(target);
-        if (KeyController.shiftKey) {
-            if (index === -1) {
-                targets = [...targets, target];
-            } else {
-                targets.splice(index, 1);
-                targets = [...targets];
-            }
-        } else {
-            targets = [target];
-        }
+        // const target = e.inputTarget;
+        //
+        // if (!target.classList.contains("target")) {
+        //     return;
+        // }
+        // const index = targets.indexOf(target);
+        // if (KeyController.shiftKey) {
+        //     if (index === -1) {
+        //         targets = [...targets, target];
+        //     } else {
+        //         targets.splice(index, 1);
+        //         targets = [...targets];
+        //     }
+        // } else {
+        //     targets = [target];
+        // }
     }
 
     function onResizeStart({target, set, setOrigin, dragStart }) {
@@ -131,23 +154,22 @@
         target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
     }
 
-    let throttleRotate = 0;
-    function onShift() {
-        throttleRotate = KeyController.shiftKey ? 30 : 0;
-    }
+    // let throttleRotate = 0;
+    // function onShift() {
+    //     throttleRotate = KeyController.shiftKey ? 30 : 0;
+    // }
 
     let groupDraging=false;
     let resizing=false;
     let groupResizing=false;
+    let selecto;
+    let selectoDraging=false;
     onMount(() => {
 
         // setGuides();
 
         //全选中
         elementGuidelines = [...document.querySelectorAll(".container .target")];
-
-        // KeyController.keydown("shift", onShift);
-        // KeyController.keyup("shift", onShift);
 
         // targets.forEach((target) => {
         //     const frame = new Frame({
@@ -165,7 +187,7 @@
 
 
         // import { getElementInfo } from "moveable";
-        const selecto = new Selecto({
+        selecto = new Selecto({
             // The container to add a selection element
             container: container,
             // The area to drag selection element (default: container)
@@ -179,25 +201,32 @@
             // After the select, whether to select the next target with the selected target (deselected if the target is selected again).
             continueSelect: false,
             // Determines which key to continue selecting the next target via keydown and keyup.
-            toggleContinueSelect: "ctrl",
+            // toggleContinueSelect: "shift",
             // The container for keydown and keyup events
             keyContainer: container,
             // The rate at which the target overlaps the drag area to be selected. (default: 100)
             hitRate: 50,
             // getElementRect: getElementInfo,
         });
+        KeyController.keydown("shift", ()=>{
+            selecto.continueSelect = true;
+        });
+        KeyController.keyup("shift", ()=>{
+            selecto.continueSelect = false;
+        });
 
         selecto.on("dragStart", e => {
-            console.log('selecto dragStart','groupDraging='+groupDraging)
+            log('selecto dragStart','groupDraging='+groupDraging)
             if (groupDraging || resizing) e.stop();
-
+            selectoDraging = true;
+            
         }).on("select", e => {
-            console.log('selecto select', 'groupDraging=' + groupDraging, 'targets.length=' + e.removed.length)
+            log('selecto select', 'groupDraging=' + groupDraging, 'targets.length=' + e.removed.length)
             if (groupDraging) return;
 
             e.removed.forEach(target => {
                 // target.classList.remove("current");
-                console.log('select removed',target === targets[0]);
+                log('select removed',target === targets[0]);
 
                 target.classList.remove("current");
 
@@ -259,7 +288,7 @@
 <div class="target current" style="display: none"></div>
 
 
-    <div class="container" bind:this={container} on:mousedown={onMouseDown}>
+    <div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
         <div class="target" >Target</div>
         <div class="target" style="left: 100px" >Target</div>
         <div class="target" style="left: 200px" >Target</div>
@@ -286,19 +315,19 @@
                 detail.targets.forEach(target => onRender({ target }));
             }}
             on:clickGroup={({ detail }) => {
-                console.log('clickGroup',"groupDraging="+groupDraging);
+                log('clickGroup',"groupDraging="+groupDraging);
                 if (groupDraging) return;
                 onClickGroup(detail);
             }}
             on:dragStart={({ detail }) => {
-                console.log('dragStart','isMoveableElement='+moveable.isMoveableElement(detail.target));
+                log('dragStart','isMoveableElement='+moveable.isMoveableElement(detail.target));
                 onDragStart(detail);
             }}
             on:drag={({ detail }) => {
                 onDrag(detail);
             }}
             on:dragGroupStart={({ detail: { targets,events }}) => {
-                console.log('dragGroupStart');
+                log('dragGroupStart');
                 groupDraging=true;
                 events.forEach(({target,set}, i) => {
                     onDragStart({target,set})
@@ -309,18 +338,17 @@
                     onDrag({target,beforeTranslate});
                 });
             }}
-            on:dragGroupEnd={({ detail: { targets, isDrag, clientX, clientY }}) => {
-                setTimeout(()=>{
-                    groupDraging=false;
-                });
-                console.log("onDragGroupEnd", targets, isDrag);
+            on:dragGroupEnd={async ({ detail: { targets, isDrag, clientX, clientY }}) => {
+                await nextTick();
+                groupDraging=false;
+                log("onDragGroupEnd", targets, isDrag);
             }}
 
             resizable={true}
             keepRatio={false}
             throttleResize={0}
             on:resizeStart={({detail})=>{
-                console.log('resizeStart')
+                log('resizeStart')
                 //if (groupResizing) return;
                 resizing=true;
                 onResizeStart(detail);
@@ -328,15 +356,14 @@
             on:resize={({detail})=>{
                 onResize(detail);
             }}
-            on:resizeEnd={({ detail: { target, isDrag, clientX, clientY }}) => {
-                setTimeout(()=>{
-                    resizing=false;
-                });
-                console.log("onResizeEnd", target, isDrag);
+            on:resizeEnd={async ({ detail: { target, isDrag, clientX, clientY }}) => {
+                await nextTick();
+                resizing=false;
+                log("onResizeEnd", target, isDrag);
             }}
 
             on:resizeGroupStart={({detail:{events}}) => {
-                console.log('resizeGroupStart')
+                log('resizeGroupStart')
                 groupResizing=true;
                 //events.forEach((event)=>{
                 //    onResizeStart(event);
@@ -346,7 +373,7 @@
                     const frame = getFrame(target);
         
                     // Set origin if transform-orgin use %.
-                    ev.setOrigin(["0", "0"]);
+                    ev.setOrigin(["%", "%"]);
         
                     // If cssSize and offsetSize are different, set cssSize.
                     const style = window.getComputedStyle(ev.target);
@@ -361,7 +388,7 @@
             on:resizeGroup={(eventInfo) => {
                 //每一个target的x和y首次拖拉时,会不精确!!!
                 let {detail:{ targets, events,direction,delta,dist }}=eventInfo;
-                //console.log(delta,eventInfo.detail);
+                //log(delta,eventInfo.detail);
                 events.forEach(event => {
                     let {target, width, height, drag } = event;
                     const frame = getFrame(target);
@@ -377,10 +404,9 @@
                     target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
                 });
             }}
-            on:resizeGroupEnd={(eventInfo) => {
-                setTimeout(()=>{
-                    groupResizing=false;
-                });
+            on:resizeGroupEnd={async (eventInfo) => {
+                await nextTick();
+                groupResizing=false;
             }}
 
 
