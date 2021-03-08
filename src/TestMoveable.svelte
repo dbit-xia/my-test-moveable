@@ -331,7 +331,7 @@
                 groupResizing=true;
             }}
             on:resizeGroup={(eventInfo) => {
-                //x和y首次拖拉时,会不精确!!!
+                //每一个target的x和y首次拖拉时,会不精确!!!
                 let {detail:{ targets, events,direction,delta,dist }}=eventInfo;
                 //console.log(delta,eventInfo.detail);
                 events.forEach(event => {
