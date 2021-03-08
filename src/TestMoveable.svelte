@@ -102,6 +102,35 @@
         }
     }
 
+    function onResizeStart({target, set, setOrigin, dragStart }) {
+        const frame = getFrame(target);
+        // Set origin if transform-orgin use %.
+        setOrigin(["%", "%"]);
+    
+        // If cssSize and offsetSize are different, set cssSize. (no box-sizing)
+        const style = window.getComputedStyle(target);
+        const cssWidth = parseFloat(style.width);
+        const cssHeight = parseFloat(style.height);
+        set([cssWidth, cssHeight]);
+    
+        // If a drag event has already occurred, there is no dragStart.
+        dragStart && dragStart.set(frame.get('translate'));
+    }
+
+    function onResize ({ target, width, height, drag })  {
+        //if (groupResizing) return;
+    
+        const frame = getFrame(target);
+        target.style.left =`${drag.left}px`;
+        target.style.top = `${drag.top}px`;
+        target.style.width = `${width}px`;
+        target.style.height = `${height}px`;
+    
+        // get drag event
+        frame.set('translate',drag.beforeTranslate);
+        target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
+    }
+
     let throttleRotate = 0;
     function onShift() {
         throttleRotate = KeyController.shiftKey ? 30 : 0;
@@ -243,9 +272,9 @@
             bind:this={moveable}
             target={targets}
             draggable={true}
-            throttleDrag={0}
+            throttleDrag={1}
             snappable={true}
-            snapThreshold={2}
+            snapThreshold={1}
             snapCenter={false}
 
             elementGuidelines={elementGuidelines}
@@ -288,36 +317,16 @@
             }}
 
             resizable={true}
+            keepRatio={false}
             throttleResize={0}
-            on:resizeStart={({ detail: {target, set, setOrigin, dragStart }}) => {
+            on:resizeStart={({detail})=>{
                 console.log('resizeStart')
                 //if (groupResizing) return;
                 resizing=true;
-                const frame = getFrame(target);
-                // Set origin if transform-orgin use %.
-                setOrigin(["%", "%"]);
-
-                // If cssSize and offsetSize are different, set cssSize. (no box-sizing)
-                const style = window.getComputedStyle(target);
-                const cssWidth = parseFloat(style.width);
-                const cssHeight = parseFloat(style.height);
-                set([cssWidth, cssHeight]);
-
-                // If a drag event has already occurred, there is no dragStart.
-                dragStart && dragStart.set(frame.get('translate'));
+                onResizeStart(detail);
             }}
-            on:resize={({ detail: { target, width, height, drag }}) => {
-                //if (groupResizing) return;
-                
-                const frame = getFrame(target);
-                target.style.left =`${drag.left}px`;
-                target.style.top = `${drag.top}px`;
-                target.style.width = `${width}px`;
-                target.style.height = `${height}px`;
-
-                // get drag event
-                frame.set('translate',drag.beforeTranslate);
-                target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
+            on:resize={({detail})=>{
+                onResize(detail);
             }}
             on:resizeEnd={({ detail: { target, isDrag, clientX, clientY }}) => {
                 setTimeout(()=>{
@@ -326,18 +335,45 @@
                 console.log("onResizeEnd", target, isDrag);
             }}
 
-            on:resizeGroupStart={(eventInfo) => {
+            on:resizeGroupStart={({detail:{events}}) => {
                 console.log('resizeGroupStart')
                 groupResizing=true;
+                //events.forEach((event)=>{
+                //    onResizeStart(event);
+                //});
+                events.forEach((ev, i) => {
+                    let {target}=ev;
+                    const frame = getFrame(target);
+        
+                    // Set origin if transform-orgin use %.
+                    ev.setOrigin(["0", "0"]);
+        
+                    // If cssSize and offsetSize are different, set cssSize.
+                    const style = window.getComputedStyle(ev.target);
+                    const cssWidth = parseFloat(style.width);
+                    const cssHeight = parseFloat(style.height);
+                    ev.set([cssWidth, cssHeight]);
+        
+                    // If a drag event has already occurred, there is no dragStart.
+                    ev.dragStart && ev.dragStart.set(frame.get('translate'));
+                });
             }}
             on:resizeGroup={(eventInfo) => {
                 //每一个target的x和y首次拖拉时,会不精确!!!
                 let {detail:{ targets, events,direction,delta,dist }}=eventInfo;
                 //console.log(delta,eventInfo.detail);
                 events.forEach(event => {
-                    let {target} = event;
-                    if (direction[0]!==0) target.style.width = `${Number(target.style.width.slice(0,-2))+delta[0]}px`;
-                    if (direction[1]!==0) target.style.height = `${Number(target.style.height.slice(0,-2))+delta[1]}px`;
+                    let {target, width, height, drag } = event;
+                    const frame = getFrame(target);
+                    //等距缩放
+                    //if (direction[0]!==0) target.style.width = `${Number(target.style.width.slice(0,-2))+delta[0]}px`;
+                    //if (direction[1]!==0) target.style.height = `${Number(target.style.height.slice(0,-2))+delta[1]}px`;
+                    //等比缩放
+                    target.style.width = `${width}px`;
+                    target.style.height = `${height}px`;
+                    // get drag event
+                    frame.set('translate',drag.beforeTranslate);
+                    target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
                 });
             }}
             on:resizeGroupEnd={(eventInfo) => {
