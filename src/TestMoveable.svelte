@@ -6,8 +6,8 @@
     import Selecto from "svelte-selecto";
 
     
-    let nextTick=()=> {
-        return new Promise(res => setTimeout(res));
+    let nextTick=(ms)=> {
+        return new Promise(res => setTimeout(res), ms || 0);
     };
     
     const KeyController = keycon.setGlobal();
@@ -29,9 +29,15 @@
     //     translate: [0, 0],
     // };
     let target1;
-
-    function log(...args){
-        args.unshift(parseInt(Date.now() / 1000));
+    let lastTime=0;
+    async function log(...args){
+        let time=parseInt(Date.now() / 1000)
+        if (time===lastTime) {
+            await nextTick(1000);
+            time=parseInt(Date.now() / 1000)
+        }
+        lastTime = time;
+        args.unshift();
         args.unshift(state);
         console.log.apply(console,args);
     }
@@ -75,19 +81,26 @@
     }
 
     async function onMouseDown(e) {
-        log('onMouseDown');
+        
         // if (selecto.continueSelect) return;
         // if (state.selectoDraging) return;
         // if (KeyController.shiftKey) return;
-        // const target = e.target;
-        // if (container === target) {
-        //     targets = [];
-        //     return;
-        // }
+        const target = e.target;
+        if (container === target) {
+            log('onMouseDown','点击了container');
+            return;
+        }
         // log(moveable.isMoveableElement(target) );
-        // if (moveable.isMoveableElement(target) || targets.indexOf(target) > -1) {
-        //     return;
-        // }
+        if (moveable.isMoveableElement(target)){
+            log('onMouseDown','点击了可移动对象');
+            return;
+        }
+        if (targets.indexOf(target) > -1) {
+            log('onMouseDown','点击了已选中的对象');
+            return;
+        }
+    
+        log('onMouseDown',target);
         // if (KeyController.shiftKey) {
         //     targets = [...targets, target];
         // } else {
@@ -95,8 +108,8 @@
         // }
 
         
-        if (KeyController.ctrlKey){
-            await nextTick();
+        if (!KeyController.shiftKey){
+            await nextTick(100);
             moveable.dragStart(e);    
         }
         
