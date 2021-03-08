@@ -366,11 +366,12 @@
                     let {target, width, height, drag } = event;
                     const frame = getFrame(target);
                     //等距缩放
-                    //if (direction[0]!==0) target.style.width = `${Number(target.style.width.slice(0,-2))+delta[0]}px`;
-                    //if (direction[1]!==0) target.style.height = `${Number(target.style.height.slice(0,-2))+delta[1]}px`;
+                    const style = window.getComputedStyle(target);
+                    if (direction[0]!==0) target.style.width = `${parseFloat(style.width)+delta[0]}px`;
+                    if (direction[1]!==0) target.style.height = `${parseFloat(style.height)+delta[1]}px`;
                     //等比缩放
-                    target.style.width = `${width}px`;
-                    target.style.height = `${height}px`;
+                    //target.style.width = `${width}px`;
+                    //target.style.height = `${height}px`;
                     // get drag event
                     frame.set('translate',drag.beforeTranslate);
                     target.style.transform = `translate(${drag.beforeTranslate[0]}px, ${drag.beforeTranslate[1]}px)`;
