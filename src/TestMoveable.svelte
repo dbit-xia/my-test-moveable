@@ -7,7 +7,7 @@
 
     
     let nextTick=(ms)=> {
-        return new Promise(res => setTimeout(res), ms || 0);
+        return new Promise(res => setTimeout(res, ms || 0));
     };
     
     const KeyController = keycon.setGlobal();
@@ -109,7 +109,7 @@
 
         
         if (!KeyController.shiftKey){
-            await nextTick(100);
+            await nextTick(2);
             moveable.dragStart(e);    
         }
         
