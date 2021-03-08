@@ -109,6 +109,7 @@
 
     let groupDraging=false;
     let resizing=false;
+    let groupResizing=false;
     onMount(() => {
 
         // setGuides();
@@ -289,6 +290,8 @@
             resizable={true}
             throttleResize={0}
             on:resizeStart={({ detail: {target, set, setOrigin, dragStart }}) => {
+                console.log('resizeStart')
+                //if (groupResizing) return;
                 resizing=true;
                 const frame = getFrame(target);
                 // Set origin if transform-orgin use %.
@@ -304,6 +307,8 @@
                 dragStart && dragStart.set(frame.get('translate'));
             }}
             on:resize={({ detail: { target, width, height, drag }}) => {
+                //if (groupResizing) return;
+                
                 const frame = getFrame(target);
                 target.style.left =`${drag.left}px`;
                 target.style.top = `${drag.top}px`;
@@ -319,6 +324,26 @@
                     resizing=false;
                 });
                 console.log("onResizeEnd", target, isDrag);
+            }}
+
+            on:resizeGroupStart={(eventInfo) => {
+                console.log('resizeGroupStart')
+                groupResizing=true;
+            }}
+            on:resizeGroup={(eventInfo) => {
+                //x和y首次拖拉时,会不精确!!!
+                let {detail:{ targets, events,direction,delta,dist }}=eventInfo;
+                //console.log(delta,eventInfo.detail);
+                events.forEach(event => {
+                    let {target} = event;
+                    if (direction[0]!==0) target.style.width = `${Number(target.style.width.slice(0,-2))+delta[0]}px`;
+                    if (direction[1]!==0) target.style.height = `${Number(target.style.height.slice(0,-2))+delta[1]}px`;
+                });
+            }}
+            on:resizeGroupEnd={(eventInfo) => {
+                setTimeout(()=>{
+                    groupResizing=false;
+                });
             }}
 
 
