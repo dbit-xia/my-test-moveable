@@ -73,7 +73,7 @@
             parseFloat(frame.get("transform", "translateY"))
         ]);
     }
-    function onDrag({ target, beforeTranslate,left,top,clientX,clientY ,delta}) {
+    function onDrag({ target, beforeTranslate,left,top,clientX,clientY ,delta,translate,dist}) {
 
         const frame = getFrame(target);
 
@@ -81,14 +81,14 @@
         frame.set("transform", "translateY", `${beforeTranslate[1]}px`);
         //console.log(target.style.transform);
         
-        let values=target.style.transform.split(' ');
-        if (values[0].length){
-            let x=values[0].split('(')[1].slice(0,-3);
-            let y=values[1].split('(')[1].slice(0,-3);
+        // let values=target.style.transform.split(' ');
+        // if (values[0].length){
+        //     let x=values[0].split('(')[1].slice(0,-3);
+        //     let y=values[1].split('(')[1].slice(0,-3);
             // const style = window.getComputedStyle(target);
-            target.style.x =`${x}px`;
-            target.style.y = `${y}px`;
-        }
+            target.style.x =`${translate[0]}px`;
+            target.style.y = `${translate[1]}px`;
+        // }
         
         //此处不生效,left和top不会变
         if (targets.includes(target)) {
