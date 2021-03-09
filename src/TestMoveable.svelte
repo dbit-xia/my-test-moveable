@@ -79,9 +79,17 @@
 
         frame.set("transform", "translateX", `${beforeTranslate[0]}px`);
         frame.set("transform", "translateY", `${beforeTranslate[1]}px`);
-        // const style = window.getComputedStyle(target);
-        // target.style.left =`${parseInt(style.left)}px`;
-        // target.style.top = `${parseInt(style.top)}px`;
+        //console.log(target.style.transform);
+        
+        let values=target.style.transform.split(' ');
+        if (values[0].length){
+            let x=values[0].split('(')[1].slice(0,-3);
+            let y=values[1].split('(')[1].slice(0,-3);
+            // const style = window.getComputedStyle(target);
+            target.style.x =`${x}px`;
+            target.style.y = `${y}px`;
+        }
+        
         //此处不生效,left和top不会变
         if (targets.includes(target)){
             getSelectAttribs(target);
@@ -172,8 +180,9 @@
         //if (groupResizing) return;
 
         const frame = getFrame(target);
-        target.style.left =`${drag.left}px`;
-        target.style.top = `${drag.top}px`;
+        //由于在onDrag里获取不到位置,所以不允许修改
+        // target.style.left =`${drag.left}px`;
+        // target.style.top = `${drag.top}px`;
         target.style.width = `${width}px`;
         target.style.height = `${height}px`;
 
@@ -267,7 +276,7 @@
         elementGuidelines.push(btn)
     }
 
-    const FIX_ATTRIB_ARRAY=['left','top','width','height'];
+    const FIX_ATTRIB_ARRAY=['x','y','width','height'];
     const attribMap= {
         "A": ['font-size'],
         "SPAN": ['font-size'],
@@ -297,10 +306,12 @@
 <style>
 
     .container {
+        position: relative;
         border: 1px solid #333;
         width: 800px;
         height: 500px;
         background: ButtonFace;
+        box-sizing: border-box;
     }
 
     .target {
@@ -333,15 +344,19 @@
 <button class="target" on:click={getSelectAttribs}>获取选中结果</button>
 <div style="display: flex;flex-direction: row">
     <div class="container" bind:this={container} on:mousedown={onMouseDown} on:mouseup={onMouseUp}>
-    <div class="target" >Target</div>
-    <div class="target" style="left: 100px" >Target</div>
-    <div class="target" style="left: 200px" >Target</div>
-    <a type="text" class="target" style="left: 500px" >456</a>
+        <div class="target" style="">Target</div>
+        <div class="target" style="">Target</div>
+        <div class="target" style="">Target</div>
+        <a type="text" class="target"  style="">456</a>
 
-    <Moveable
+        <Moveable
             className="moveable"
             container={container}
             bind:this={moveable}
+            portalContainer={container}
+            rootContainer={container}
+            dragArea={false}
+            padding={{left:0,top:0,right:0,bottom:0}}
             target={targets}
             draggable={true}
             throttleDrag={1}
@@ -455,21 +470,21 @@
         />
 
         <Selecto bind:this={selecto}
-                 selectableTargets={[".container .target"]}
-                 selectByClick={true}
-                 selectFromInside={false}
-                 continueSelect={false}
-                 toggleContinueSelect={"shift"}
-                 hitRate={50}
-                 on:dragStart={({ detail: e }) => {
-                    log('selecto dragStart', 'groupDraging=' + state.groupDraging)
-                    if (state.groupDraging || state.resizing) return e.stop();
-                    state.selectoDraging = true;
-                  }}
-                 on:select={({ detail: e }) => {
-                     log('selecto select',  'targets.length=' + e.removed.length)
-                    selectoSelect(e);
-                 }}
+             selectableTargets={[".container .target"]}
+             selectByClick={true}
+             selectFromInside={false}
+             continueSelect={false}
+             toggleContinueSelect={"shift"}
+             hitRate={50}
+             on:dragStart={({ detail: e }) => {
+                log('selecto dragStart', 'groupDraging=' + state.groupDraging)
+                if (state.groupDraging || state.resizing) return e.stop();
+                state.selectoDraging = true;
+              }}
+             on:select={({ detail: e }) => {
+                 log('selecto select',  'targets.length=' + e.removed.length)
+                selectoSelect(e);
+             }}
         />
     </div>
     <div style="display: flex;flex-direction: column">
