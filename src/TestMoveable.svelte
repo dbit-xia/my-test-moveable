@@ -91,8 +91,8 @@
         }
         
         //此处不生效,left和top不会变
-        if (targets.includes(target)){
-            getSelectAttribs(target);
+        if (targets.includes(target)) {
+            getSelectAttribs(target, ['x', 'y']);
         }
 
     }
@@ -289,10 +289,10 @@
 
     let currentSelect;
     let attribList=[];
-    function getSelectAttribs(currentSelect) {
+    function getSelectAttribs(currentSelect,keys) {
         attribList=[];
         if (currentSelect){
-            let attribs = attribMap[currentSelect.tagName] || [];
+            let attribs = keys || attribMap[currentSelect.tagName] || [];
             const style = window.getComputedStyle(currentSelect);
             attribs.forEach((key)=>{
                 attribList.push([key,style[key]]);
@@ -306,7 +306,6 @@
 <style>
 
     .container {
-        position: relative;
         border: 1px solid #333;
         width: 800px;
         height: 500px;
