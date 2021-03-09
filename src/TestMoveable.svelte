@@ -266,7 +266,12 @@
         });
     }
 
-
+    //text(x,y,w,h,value,font,size,color)
+    //image(x,y,w,h,src),
+    // barcode(x,y,w,h,value,hideText,type,primary,mode,rotation)
+    // rect
+    // line(sx,sy,ex,ey,style)
+    // table()
     function createElement(){
         var btn=document.createElement("BUTTON");
         var t=document.createTextNode("CLICK ME");
