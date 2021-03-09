@@ -381,7 +381,7 @@
                 onDragStart(detail);
             }}
             on:drag={({ detail }) => {
-                log('drag');
+                //log('drag');
                 onDrag(detail);
             }}
             on:dragGroupStart={({ detail: { targets,events }}) => {
@@ -412,6 +412,7 @@
                 onResizeStart(detail);
             }}
             on:resize={({detail})=>{
+                //log('resize');
                 onResize(detail);
             }}
             on:resizeEnd={async ({ detail: { target, isDrag, clientX, clientY }}) => {
